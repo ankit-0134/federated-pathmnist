@@ -16,7 +16,7 @@ The first run downloads PathMNIST into the data directory. The script selects CU
 
 ## Run experiments
 
-Set a W&B API key in your environment before online logging. Use one project for all runs:
+Authenticate with W&B before online logging. For example, run `wandb login` or set a W&B API key in your environment. Use one project for all runs:
 
 ~~~powershell
 $env:WANDB_API_KEY = "your-api-key"
@@ -26,7 +26,11 @@ python -m src.fedpathmnist.train --algorithm fedprox --mu 0.01 --seed 0 --wandb-
 
 For an initial pipeline check, reduce the rounds with `--rounds 2`. The default is 20 communication rounds, one local epoch per client, batch size 128, and learning rate 0.01. These settings are a starting point and should be reported exactly as used. Add independent seeds by rerunning with `--seed 1` and `--seed 2`.
 
-If W&B is not configured yet, use `--wandb-mode disabled` for a local run. The script still writes a CSV, JSON summary, accuracy plot, and final global checkpoint under `outputs/<run-name>/`. The two completed runs were saved offline. In this workspace, sync them with `wandb sync outputs/fedavg_seed0/wandb/offline-run-20261108_015130-u5hlakuu` and `wandb sync outputs/fedprox_mu0.01_seed0/wandb/offline-run-20261108_022519-48285hsv`. The project has not been published yet; authenticate with W&B, sync both runs, and make the project public before submitting its URL.
+If W&B is not configured yet, use `--wandb-mode disabled` for a local run. The script still writes a CSV, JSON summary, accuracy plot, and final global checkpoint under `outputs/<run-name>/`. For this submission, both runs have been synced to the same publicly readable W&B project:
+
+- Project: [federated-pathmnist](https://forge.coreweave.com/wandb/ankitdubey7949-indian-institute-of-technology-kanpur/federated-pathmnist)
+- [fedavg_seed0](https://forge.coreweave.com/wandb/ankitdubey7949-indian-institute-of-technology-kanpur/federated-pathmnist/runs/u5hlakuu)
+- [fedprox_mu0.01_seed0](https://forge.coreweave.com/wandb/ankitdubey7949-indian-institute-of-technology-kanpur/federated-pathmnist/runs/48285hsv)
 
 ## Experiment design and metrics
 
@@ -36,9 +40,9 @@ If W&B is not configured yet, use `--wandb-mode disabled` for a local run. The s
 - For each class, training and test examples are independently allocated to clients using a Dirichlet draw with alpha 0.3. A fixed seed makes the allocation repeatable.
 - Exactly 40% of client 0's training labels are replaced by uniformly sampled incorrect class labels. Evaluation labels are not changed.
 - Global accuracy and loss use the complete official test set. Per-client accuracy and loss use clean, disjoint test subsets created by the same non-IID partitioning procedure.
-- W&B and the local CSV include global/per-client train and test loss/accuracy, each client's update L2 norm, each client's mean cosine similarity to other client updates, and the mean pairwise cosine across clients.
+- Each round logs the global test loss/accuracy and weighted global training loss; for each client it logs clean test loss/accuracy and training loss. It also logs each client's update L2 norm, each client's mean cosine similarity to other client updates, and the mean pairwise cosine across clients.
 
-Run names default to `fedavg_seed0` and `fedprox_mu0.01_seed0`. These runs were recorded in W&B offline mode because no W&B API key was configured. After setting `WANDB_API_KEY`, sync each generated offline run directory with `wandb sync <offline-run-directory>`, then set the project visibility to **Public** in W&B project settings before submitting its link. Do not publish API keys or credentials.
+Run names default to `fedavg_seed0` and `fedprox_mu0.01_seed0`. The submitted runs are online and publicly readable. Each round logs global test loss/accuracy and training loss, per-client clean test loss/accuracy and training loss, client update L2 norms, each client's mean cosine similarity to peer updates, and the mean pairwise cosine similarity across clients. Here, cosine values compare client model-update vectors within the same round. Do not publish API keys or credentials.
 
 ## Results
 
@@ -46,8 +50,8 @@ Both seed-0 runs completed for 20 rounds on CPU. The table reports the final com
 
 | Algorithm | Seed | Final global test accuracy | Final global test loss | W&B run |
 |---|---:|---:|---:|---|
-| FedAvg | 0 | 75.70% | 0.9681 | `fedavg_seed0` |
-| FedProx (mu=0.01) | 0 | 76.42% | 0.9485 | `fedprox_mu0.01_seed0` |
+| FedAvg | 0 | 75.70% | 0.9681 | [fedavg_seed0](https://forge.coreweave.com/wandb/ankitdubey7949-indian-institute-of-technology-kanpur/federated-pathmnist/runs/u5hlakuu) |
+| FedProx (mu=0.01) | 0 | 76.42% | 0.9485 | [fedprox_mu0.01_seed0](https://forge.coreweave.com/wandb/ankitdubey7949-indian-institute-of-technology-kanpur/federated-pathmnist/runs/48285hsv) |
 
 | Client | Clean test samples | FedAvg accuracy | FedProx accuracy |
 |---:|---:|---:|---:|
@@ -57,7 +61,7 @@ Both seed-0 runs completed for 20 rounds on CPU. The table reports the final com
 | 3 | 1,291 | 77.23% | 78.16% |
 | 4 | 3,893 | 75.62% | 76.86% |
 
-FedProx is 0.72 percentage points higher in global accuracy in this run, while its client-2 accuracy is lower. The client-specific test partitions are disjoint but drawn independently from the training partitions. Read the per-client sample counts alongside accuracy because the test partitions are intentionally non-IID and differ in size. See the [global and per-client accuracy plot](deliverables/global_accuracy_comparison.png) and [final metrics CSV](deliverables/final_metrics.csv). Detailed round metrics are in each local `outputs/<run-name>/metrics.csv` file.
+FedProx is 0.72 percentage points higher in global accuracy in this run, while its client-2 accuracy is lower. The client-specific test partitions are disjoint but drawn independently from the training partitions. Read the per-client sample counts alongside accuracy because the test partitions are intentionally non-IID and differ in size. See the [global and per-client accuracy plot](deliverables/global_accuracy_comparison.png) and [final metrics CSV](deliverables/final_metrics.csv). Full per-round global and per-client loss/accuracy, update norms, and client-update cosine metrics are logged in the linked W&B runs. Local per-round CSVs and model checkpoints are written under `outputs/<run-name>/`; these generated files are excluded from Git.
 
 ## Reading PDF and presentation
 
